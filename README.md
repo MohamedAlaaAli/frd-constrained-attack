@@ -1,6 +1,6 @@
 # Frd-Constrained Attack
 
-On the Feasibility of Fréchet Radiomic Distance–Constrained Adversarial Examples in Medical Imaging: Methods and Trade-offs [[`Cite`](#citation)]
+On the Feasibility of Fréchet Radiomic Distance–Constrained Adversarial Examples in Medical Imaging: Methods and Trade-offs
 
 # Abstract 
 
