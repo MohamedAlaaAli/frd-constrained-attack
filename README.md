@@ -55,8 +55,8 @@ All adversarial examples were generated targeting the **OpenAI CLIP** model, the
 ---
 
 
-# Citation
-
+# Acknowledgement
+## Original FRD-paper
 ```bibtex
 @article{konzosuala_frd2025,
       title={Fr\'echet Radiomic Distance (FRD): A Versatile Metric for Comparing Medical Imaging Datasets}, 
