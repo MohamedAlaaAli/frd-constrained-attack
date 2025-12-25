@@ -23,6 +23,7 @@ from tqdm import trange
 from PIL import Image
 import matplotlib.pyplot as plt
 import pandas as pd
+import argparse
 
 import torch
 import torch.nn.functional as F
@@ -30,7 +31,7 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 
 
-from compute_frd import get_distance_fn
+from frd.compute_frd import get_distance_fn
 from models.clip import CLIPImageEmbedder
 
 # -----------------------
@@ -53,8 +54,18 @@ CFG = {
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "seed": 42,
     "save_every": 20,  # save pareto images every N iterations
-    "progress_csv_name": "dmf_progress.csv",
+    "progress_csv_name": "progress.csv",
 }
+
+def get_args():
+    parser = argparse.ArgumentParser(description="FRD-constrained MOPSO Attack")
+    parser.add_argument("--dataset", type=str, default="dmf", choices=["dmf", "ham", "derm7pt"], help="Dataset to attack")
+    parser.add_argument("--num_samples", type=int, default=243, help="Number of samples to attack")
+    parser.add_argument("--output_dir", type=str, default=None, help="Output directory")
+    parser.add_argument("--swarm_size", type=int, default=50, help="Swarm size")
+    parser.add_argument("--iters", type=int, default=80, help="Number of iterations")
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to use")
+    return parser.parse_args()
 
 os.makedirs(CFG["output_dir"], exist_ok=True)
 torch.manual_seed(CFG["seed"])
@@ -134,12 +145,134 @@ def get_image_dataloader_dmf(
     return loader
 
 
-# DMF Dataset
-dmf_test_ids = pd.read_csv(os.path.join(TEST_IDS_PATH, "dmf_ids.csv"))
-dmf_test_ids = tuple(list(element.item() for element in dmf_test_ids.to_numpy()))
-dmf_loader = get_image_dataloader_dmf(
-    DMF_DATASET, os.path.join(TEST_IMAGES_PATH, "dmf"), ids=dmf_test_ids, batch_size=1
-)
+class HAM10000PILDataset(Dataset):
+
+    def __init__(self, root_dir, save_dir, ids, extensions=(".jpg", ".jpeg", ".png", ".bmp")):
+
+        self.root_dir = root_dir
+        self.extensions = extensions
+        self.image_paths = [
+            os.path.join(root, fname)
+            for root, _, files in os.walk(root_dir)
+            for fname in files
+            if fname.lower().endswith(extensions) and fname.startswith(ids)
+        ]
+
+        if not self.image_paths:
+            raise ValueError(f"No images found in {root_dir} with extensions {extensions}")
+        
+        for idx, path in enumerate(self.image_paths):
+            img = Image.open(path).convert("RGB")
+            img = img.resize((224, 224), Image.BILINEAR)
+            
+            new_path = os.path.join(save_dir, os.path.basename(path))
+            self.image_paths[idx] = new_path
+
+            img.save(new_path)
+
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.image_paths[idx]).convert("RGB")
+        img = torch.from_numpy(np.array(img)).permute(2, 0, 1).float()/255.0
+        return (img, self.image_paths[idx])
+
+def get_image_dataloader_ham(root_dir, save_dir, ids, batch_size=8, num_workers=4, shuffle=False):
+
+    assert Path(root_dir).is_dir()
+    assert Path(save_dir).is_dir()
+    
+    dataset = HAM10000PILDataset(root_dir, save_dir, ids)
+
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=shuffle,
+    )
+
+    return loader
+
+class DERM7PTPILDataset(Dataset):
+
+    def __init__(self, root_dir, save_dir, test_ids, meta, extensions=(".jpg", ".jpeg", ".png", ".bmp")):
+
+        self.root_dir = root_dir
+        self.extensions = extensions
+        self.image_paths = [
+            os.path.join(os.path.join(root_dir, "images"), meta.iloc[case_num]['derm']) 
+            for case_num in test_ids['image_id']
+        ]
+
+
+        if not self.image_paths:
+            raise ValueError(f"No images found in {root_dir} with extensions {extensions}")
+        
+        for idx, path in enumerate(self.image_paths):
+            img = Image.open(path).convert("RGB")
+            img = img.resize((224, 224), Image.BILINEAR)
+            
+            new_path = os.path.join(save_dir, os.path.basename(path))
+            self.image_paths[idx] = new_path
+
+            img.save(new_path)
+
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.image_paths[idx]).convert("RGB")
+        img = torch.from_numpy(np.array(img)).permute(2, 0, 1).float()/255.0
+        return (img, self.image_paths[idx])
+
+def get_image_dataloader_d7p(root_dir, save_dir, ids, meta, batch_size=8, num_workers=4, shuffle=False):
+
+    assert Path(root_dir).is_dir()
+    assert Path(save_dir).is_dir()
+    
+    dataset = DERM7PTPILDataset(root_dir, save_dir, ids, meta)
+
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=shuffle,
+    )
+
+    return loader
+
+def get_dataset_loader(dataset_name, batch_size=1):
+    if dataset_name == "dmf":
+        ids_path = os.path.join(TEST_IDS_PATH, "dmf_ids.csv")
+        root_dir = DMF_DATASET
+        save_dir = os.path.join(TEST_IMAGES_PATH, "dmf")
+        os.makedirs(save_dir, exist_ok=True)
+        ids_df = pd.read_csv(ids_path)
+        ids = tuple(list(element.item() for element in ids_df.to_numpy()))
+        return get_image_dataloader_dmf(root_dir, save_dir, ids=ids, batch_size=batch_size)
+        
+    elif dataset_name == "ham":
+        ids_path = os.path.join(TEST_IDS_PATH, "ham_ids.csv")
+        root_dir = HAM_DATASET
+        save_dir = os.path.join(TEST_IMAGES_PATH, "ham")
+        os.makedirs(save_dir, exist_ok=True)
+        ids_df = pd.read_csv(ids_path)
+        ids = tuple(list(element.item() for element in ids_df.to_numpy()))
+        return get_image_dataloader_ham(root_dir, save_dir, ids=ids, batch_size=batch_size)
+        
+    elif dataset_name == "derm7pt":
+        ids_path = os.path.join(TEST_IDS_PATH, "d7p_ids.csv")
+        root_dir = DERM7PT_DATASET
+        save_dir = os.path.join(TEST_IMAGES_PATH, "derm7pt")
+        os.makedirs(save_dir, exist_ok=True)
+        ids_df = pd.read_csv(ids_path)
+        meta = pd.read_csv(os.path.join(DERM7PT_DATASET, "meta/meta.csv"))
+        return get_image_dataloader_d7p(root_dir, save_dir, ids=ids_df, meta=meta, batch_size=batch_size)
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
 
 
 # -----------------------
@@ -533,8 +666,26 @@ class FastMOPSO:
 # Experiment runner + analysis
 # -----------------------
 def run_experiment():
+    args = get_args()
+    
+    # Update CFG with args
+    CFG["dataset_path"] = f"test_sets/test_images/{args.dataset}"
+    if args.output_dir:
+        CFG["output_dir"] = args.output_dir
+    else:
+        CFG["output_dir"] = f"results/{args.dataset}/pso"
+        
+    CFG["num_samples"] = args.num_samples
+    CFG["swarm_size"] = args.swarm_size
+    CFG["iters"] = args.iters
+    CFG["device"] = args.device
+    CFG["progress_csv_name"] = f"{args.dataset}_progress.csv"
+    
+    print(f"Running with config: {CFG}")
+
     # load dataset and embedder
-    dataset = dmf_loader.dataset
+    loader = get_dataset_loader(args.dataset)
+    dataset = loader.dataset
     embedder = CLIPImageEmbedder(device=CFG["device"])
     frd_factory = get_distance_fn
     device_local = torch.device(CFG["device"])

@@ -54,6 +54,71 @@ All adversarial examples were generated targeting the **OpenAI CLIP** model, the
 
 ---
 
+# Data Structure
+
+To run the experiments, ensure your data is organized as follows:
+
+```
+project_root/
+├── datasets/
+│   ├── HAM/          # HAM10000 dataset root
+│   ├── DERM7PT/      # Derm7pt dataset root (should contain meta/meta.csv and images/)
+│   └── DMF/          # Dermofit dataset root
+└── test_sets/
+    ├── test_ids/
+    │   ├── dmf_ids.csv
+    │   ├── ham_ids.csv
+    │   └── d7p_ids.csv
+    └── test_images/  # Directory where processed test images will be saved
+        ├── dmf/
+        ├── ham/
+        └── derm7pt/
+```
+
+---
+
+# Usage
+
+To run the FRD-constrained attack using MOPSO, use the `pso.py` script. You can specify the dataset and other parameters via command-line arguments.
+
+## Running the Attack
+
+```bash
+python pso.py --dataset <dataset_name> [options]
+```
+
+### Arguments
+
+- `--dataset`: The dataset to attack. Choices: `dmf`, `ham`, `derm7pt`. Default: `dmf`.
+- `--num_samples`: Number of samples to attack. Default: `243`.
+- `--output_dir`: Directory to save results. Default: `results/<dataset>/pso`.
+- `--swarm_size`: Size of the particle swarm. Default: `50`.
+- `--iters`: Number of iterations for the optimization. Default: `80`.
+- `--device`: Device to use (`cuda` or `cpu`). Default: auto-detect.
+
+### Examples
+
+Run on DMF dataset with default settings:
+```bash
+python pso.py --dataset dmf
+```
+
+Run on HAM dataset with 100 samples and custom output directory:
+```bash
+python pso.py --dataset ham --num_samples 100 --output_dir results/my_ham_experiment
+```
+
+## Results
+
+The results will be saved in the specified `output_dir`.
+- `summary_all.csv`: Contains aggregated statistics for all processed samples.
+- `global_pareto.png`: A plot showing the global Pareto front (FRD vs Adversarial Distance).
+- Individual sample directories (e.g., `sample_0/`) containing:
+    - `progress.csv`: Per-iteration progress of the optimization.
+    - `summary.json`: Final statistics for the sample.
+    - Generated adversarial images (e.g., `iter_final_top0_...png`).
+
+---
 
 # Acknowledgement
 ## Original FRD-paper

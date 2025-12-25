@@ -40,7 +40,7 @@ env/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-*.ipynb
+# *.ipynb
 
 # PyCharm
 .pytest_cache/
@@ -50,8 +50,6 @@ htmlcov/
 # Data & Results (project-specific)
 datasets/
 results/
-test_sets/test_images/
-test_sets/test_ids/
 
 # Large model files
 *.pt
