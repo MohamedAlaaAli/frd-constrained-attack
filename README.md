@@ -121,6 +121,18 @@ The results will be saved in the specified `output_dir`.
 ---
 
 # Acknowledgement
+## Cite Our Work
+```bibtex
+@inproceedings{
+mahmoud2025on,
+title={On the Feasibility of Fr\'echet Radiomic Distance{\textendash}Constrained Adversarial Examples in Medical Imaging: Methods and Trade-offs},
+author={Mohamed Mahmoud and Shehab Khaled and Mohamed Elkhayat and Jamil Fayyad},
+booktitle={Submitted to Medical Imaging with Deep Learning},
+year={2025},
+url={https://openreview.net/forum?id=AGjbmEtbaR},
+note={under review}
+}
+```
 ## Original FRD-paper
 ```bibtex
 @article{konzosuala_frd2025,
