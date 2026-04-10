@@ -137,7 +137,7 @@ booktitle={Medical Imaging with Deep Learning},
 year={2026},
 url={https://openreview.net/forum?id=AGjbmEtbaR}
 }
-}
+
 ```
 ## Original FRD-paper
 ```bibtex
