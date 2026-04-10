@@ -1,6 +1,7 @@
 # Frd-Constrained Attack
 
-(On the Feasibility of Fréchet Radiomic Distance–Constrained Adversarial Examples in Medical Imaging: Methods and Trade-offs)[https://openreview.net/forum?id=AGjbmEtbaR#discussion]
+**On the Feasibility of Fréchet Radiomic Distance–Constrained Adversarial Examples in Medical Imaging: Methods and Trade-offs**  
+[OpenReview Link](https://openreview.net/forum?id=AGjbmEtbaR#discussion)  
 
 # Abstract 
 
