@@ -26,6 +26,11 @@ and empirical insight toward the development of inherently robust and trustworth
 
 ---
 
+## 📄 Publication Update
+
+We are pleased to announce that this paper has been **accepted at Medical Imaging With Deep Learning (MIDL) 2026**.
+
+
 # Data & Models
 
 ## Datasets
